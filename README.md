@@ -6,6 +6,8 @@ Not intended for production use — this is a developer tool for verifying
 API behaviour, inspecting transcription results, and triggering regeneration
 during development and QA cycles.
 
+![alt text](image.png)
+
 ## What it does
 
 - **Trigger transcription** — paste a BandLab track URL (or bare post ID),
