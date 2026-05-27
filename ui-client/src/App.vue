@@ -1,6 +1,7 @@
 <script setup>
 import { ref, provide } from 'vue';
 import ConfigPanel from './components/ConfigPanel.vue';
+import QuotaPanel from './components/QuotaPanel.vue';
 import TriggerPanel from './components/TriggerPanel.vue';
 import LogPanel from './components/LogPanel.vue';
 
@@ -52,6 +53,11 @@ function authHeaders() {
         <h1>🎵 Lyrics Transcription — Test Client</h1>
 
         <ConfigPanel v-model:apiBaseUrl="apiBaseUrl" v-model:bearerToken="bearerToken" />
+
+        <QuotaPanel
+            :apiBaseUrl="apiBaseUrl"
+            :authHeaders="authHeaders"
+        />
 
         <TriggerPanel
             :apiBaseUrl="apiBaseUrl"
