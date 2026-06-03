@@ -5,7 +5,7 @@ import QuotaPanel from './components/QuotaPanel.vue';
 import TriggerPanel from './components/TriggerPanel.vue';
 import LogPanel from './components/LogPanel.vue';
 
-const apiBaseUrl = ref('https://u00eqnitv3.execute-api.ap-southeast-1.amazonaws.com');
+const apiBaseUrl = ref('https://test.aws.bandlab.com/api/v1.3');
 const bearerToken = ref('');
 
 const httpLogs = ref([]);
