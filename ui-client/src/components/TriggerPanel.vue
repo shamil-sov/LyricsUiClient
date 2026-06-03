@@ -135,7 +135,7 @@ function updateLastAttempt(status, detail) {
 
 async function deleteLyrics() {
     if (!postId.value || !props.apiBaseUrl) return;
-    if (!confirm(`Delete lyrics for ${postId.value}? This only works for beta users.`)) return;
+    if (!confirm(`Delete lyrics for ${postId.value}?`)) return;
     deleting.value = true;
     error.value = '';
     try {
@@ -143,6 +143,9 @@ async function deleteLyrics() {
             `${props.apiBaseUrl}/synced-lyrics/${postId.value}`,
             { method: 'DELETE', headers: props.authHeaders() }
         );
+        if (res.status === 403) {
+            throw new Error('Access denied (403). You must be a beta user to delete lyrics. Ask Shamil to add your user ID to the list of beta users.');
+        }
         if (!res.ok) {
             const text = await res.text();
             throw new Error(`${res.status}: ${text}`);
@@ -172,7 +175,7 @@ function sleep(ms) {
 
 <template>
     <div class="card">
-        <h2>🚀 Trigger Transcription</h2>
+        <h2>🎵 Transcribe Song</h2>
 
         <div class="input-mode-toggle">
             <label :class="{ active: inputMode === 'url' }">
@@ -207,8 +210,6 @@ function sleep(ms) {
             <button v-if="result && !loading && !deleting" class="btn-secondary" @click="reset">Clear</button>
         </div>
 
-        <div class="beta-hint">⚠️ Delete works only for beta users. If you're not a beta user, go to Curator → User Settings and enable the <strong>'Internal Bandlab User'</strong> flag.</div>
-
         <div v-if="postId && !result" class="post-id-hint">
             Post ID: <code>{{ postId }}</code>
         </div>
@@ -219,6 +220,7 @@ function sleep(ms) {
                 <span v-if="phase === 'polling'" class="phase-active">⏳ Polling…</span>
                 <span v-else-if="phase === 'triggering'" class="phase-active">⏳ Triggering…</span>
                 <span v-else-if="phase === 'done' && result?.status === 'completed'" class="phase-done">✅ Done</span>
+                <span v-else-if="phase === 'done' && result?.status === 'deleted'" class="phase-done">🗑️ Lyrics deleted successfully</span>
                 <span v-else-if="phase === 'done'" class="phase-fail">❌ {{ result?.status || 'Error' }}</span>
                 <span v-if="elapsed" class="elapsed">{{ elapsed }}</span>
             </div>
@@ -322,12 +324,6 @@ function sleep(ms) {
 
 .btn-delete:hover:not(:disabled) {
     background: #7d3535;
-}
-
-.beta-hint {
-    font-size: 0.75rem;
-    color: #f0c040;
-    margin-bottom: 8px;
 }
 
 .post-id-hint {
