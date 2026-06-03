@@ -52,7 +52,7 @@ function authHeaders() {
     <div class="app">
         <h1>🎵 Lyrics Transcription — Test Client</h1>
 
-        <ConfigPanel v-model:apiBaseUrl="apiBaseUrl" v-model:bearerToken="bearerToken" />
+        <ConfigPanel v-model:bearerToken="bearerToken" />
 
         <QuotaPanel
             :apiBaseUrl="apiBaseUrl"
