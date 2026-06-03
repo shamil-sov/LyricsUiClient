@@ -6,5 +6,11 @@ export default defineConfig({
     plugins: [vue()],
     server: {
         port: 5173,
+        proxy: {
+            '/oauth': {
+                target: 'https://accounts-test.bandlab.com',
+                changeOrigin: true,
+            },
+        },
     },
 });

@@ -18,7 +18,10 @@ async function login() {
     loggingIn.value = true;
     loginError.value = '';
     try {
-        const res = await loggedFetch('https://accounts-test.bandlab.com/oauth/connect/token', {
+        const tokenUrl = import.meta.env.DEV
+            ? '/oauth/connect/token'
+            : 'https://accounts-test.bandlab.com/oauth/connect/token';
+        const res = await fetch(tokenUrl, {
             method: 'POST',
             headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
             body: new URLSearchParams({
@@ -34,10 +37,12 @@ async function login() {
         const expiresAt = new Date(Date.now() + data.expires_in * 1000);
         tokenExpiry.value = expiresAt.toLocaleTimeString();
         connected.value = true;
+        collapsed.value = true;
         emit('authenticated');
     } catch (e) {
         loginError.value = e.message;
         connected.value = false;
+        collapsed.value = false;
     } finally {
         loggingIn.value = false;
     }
@@ -57,6 +62,7 @@ onMounted(() => {
                 <span v-else-if="loggingIn" class="conn-badge conn-pending">● Connecting…</span>
                 <span v-else class="conn-badge conn-err">● Disconnected</span>
                 <span v-if="tokenExpiry && connected" class="token-exp">expires {{ tokenExpiry }}</span>
+                <span v-if="loginError && collapsed" class="login-err-hint">{{ loginError }}</span>
             </div>
             <span class="collapse-icon">{{ collapsed ? '▸' : '▾' }}</span>
         </div>
@@ -172,5 +178,10 @@ label {
     font-size: 0.75rem;
     color: #f87171;
     margin-top: 8px;
+}
+
+.login-err-hint {
+    font-size: 0.7rem;
+    color: #f87171;
 }
 </style>
