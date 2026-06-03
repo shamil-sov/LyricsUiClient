@@ -8,14 +8,22 @@ const props = defineProps({
     authHeaders: Function,
 });
 
+const inputMode = ref('url'); // 'url' | 'postid'
 const trackUrl = ref('');
+const directPostId = ref('');
 const loading = ref(false);
+const deleting = ref(false);
 const error = ref('');
 const result = ref(null);
 const pollAttempts = ref([]);
 const phase = ref(''); // 'triggering' | 'polling' | 'done'
 
 const postId = computed(() => {
+    if (inputMode.value === 'postid') {
+        const val = directPostId.value.trim();
+        const uuid = val.match(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i);
+        return uuid ? uuid[0] : '';
+    }
     try {
         const url = new URL(trackUrl.value);
         const parts = url.pathname.split('/');
@@ -125,8 +133,32 @@ function updateLastAttempt(status, detail) {
     if (last) { last.status = status; last.detail = detail; }
 }
 
+async function deleteLyrics() {
+    if (!postId.value || !props.apiBaseUrl) return;
+    if (!confirm(`Delete lyrics for ${postId.value}? This only works for beta users.`)) return;
+    deleting.value = true;
+    error.value = '';
+    try {
+        const res = await loggedFetch(
+            `${props.apiBaseUrl}/synced-lyrics/${postId.value}`,
+            { method: 'DELETE', headers: props.authHeaders() }
+        );
+        if (!res.ok) {
+            const text = await res.text();
+            throw new Error(`${res.status}: ${text}`);
+        }
+        result.value = { postId: postId.value, status: 'deleted' };
+        phase.value = 'done';
+    } catch (e) {
+        error.value = e.message;
+    } finally {
+        deleting.value = false;
+    }
+}
+
 function reset() {
     trackUrl.value = '';
+    directPostId.value = '';
     result.value = null;
     pollAttempts.value = [];
     error.value = '';
@@ -142,18 +174,40 @@ function sleep(ms) {
     <div class="card">
         <h2>🚀 Trigger Transcription</h2>
 
+        <div class="input-mode-toggle">
+            <label :class="{ active: inputMode === 'url' }">
+                <input type="radio" v-model="inputMode" value="url" /> Track URL
+            </label>
+            <label :class="{ active: inputMode === 'postid' }">
+                <input type="radio" v-model="inputMode" value="postid" /> Post ID
+            </label>
+        </div>
+
         <div class="input-row">
             <input
+                v-if="inputMode === 'url'"
                 v-model="trackUrl"
-                placeholder="Paste BandLab track URL or post ID"
+                placeholder="Paste BandLab track URL"
                 @keyup.enter="trigger()"
-                :disabled="loading"
+                :disabled="loading || deleting"
             />
-            <button class="btn-primary" :disabled="!postId || loading" @click="trigger()">
+            <input
+                v-else
+                v-model="directPostId"
+                placeholder="Paste post ID (UUID)"
+                @keyup.enter="trigger()"
+                :disabled="loading || deleting"
+            />
+            <button class="btn-primary" :disabled="!postId || loading || deleting" @click="trigger()">
                 {{ loading ? 'Working…' : 'Trigger' }}
             </button>
-            <button v-if="result && !loading" class="btn-secondary" @click="reset">Clear</button>
+            <button class="btn-delete" :disabled="!postId || loading || deleting" @click="deleteLyrics()">
+                {{ deleting ? 'Deleting…' : '🗑 Delete' }}
+            </button>
+            <button v-if="result && !loading && !deleting" class="btn-secondary" @click="reset">Clear</button>
         </div>
+
+        <div class="beta-hint">⚠️ Delete works only for beta users. If you're not a beta user, go to Curator → User Settings and enable the <strong>'Internal Bandlab User'</strong> flag.</div>
 
         <div v-if="postId && !result" class="post-id-hint">
             Post ID: <code>{{ postId }}</code>
@@ -222,6 +276,36 @@ function sleep(ms) {
 </template>
 
 <style scoped>
+.input-mode-toggle {
+    display: flex;
+    gap: 12px;
+    margin-bottom: 10px;
+}
+
+.input-mode-toggle label {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 0.82rem;
+    color: #888;
+    cursor: pointer;
+    padding: 4px 10px;
+    border-radius: 4px;
+    border: 1px solid transparent;
+    transition: all 0.15s;
+}
+
+.input-mode-toggle label.active {
+    color: #5b8def;
+    border-color: #5b8def;
+    background: rgba(91, 141, 239, 0.08);
+}
+
+.input-mode-toggle input[type="radio"] {
+    width: auto;
+    accent-color: #5b8def;
+}
+
 .input-row {
     display: flex;
     gap: 8px;
@@ -229,6 +313,22 @@ function sleep(ms) {
 }
 
 .input-row input { flex: 1; }
+
+.btn-delete {
+    background: #6b2f2f;
+    color: #f8a0a0;
+    border: 1px solid #8b3a3a;
+}
+
+.btn-delete:hover:not(:disabled) {
+    background: #7d3535;
+}
+
+.beta-hint {
+    font-size: 0.75rem;
+    color: #f0c040;
+    margin-bottom: 8px;
+}
 
 .post-id-hint {
     font-size: 0.8rem;

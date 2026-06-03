@@ -64,13 +64,6 @@ onMounted(() => {
         <div v-show="!collapsed" class="config-body">
             <div class="config-grid">
                 <div>
-                    <label>API Base URL</label>
-                    <input
-                        v-model="apiBaseUrl"
-                        placeholder="https://..."
-                    />
-                </div>
-                <div>
                     <label>Bearer Token</label>
                     <div class="token-row">
                         <input
