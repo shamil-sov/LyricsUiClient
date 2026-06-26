@@ -1,11 +1,16 @@
 <script setup>
-import { ref, provide } from 'vue';
+import { ref, computed, provide } from 'vue';
 import ConfigPanel from './components/ConfigPanel.vue';
 import QuotaPanel from './components/QuotaPanel.vue';
 import TriggerPanel from './components/TriggerPanel.vue';
 import LogPanel from './components/LogPanel.vue';
 
-const apiBaseUrl = ref('https://test.aws.bandlab.com/api/v1.3');
+const env = ref('test');
+const apiBaseUrl = computed(() =>
+    env.value === 'prod'
+        ? 'https://aws.bandlab.com/api/v1.3'
+        : 'https://test.aws.bandlab.com/api/v1.3'
+);
 const bearerToken = ref('');
 
 const httpLogs = ref([]);
@@ -52,7 +57,7 @@ function authHeaders() {
     <div class="app">
         <h1>🎵 Lyrics Transcription — Test Client</h1>
 
-        <ConfigPanel v-model:bearerToken="bearerToken" />
+        <ConfigPanel v-model:bearerToken="bearerToken" v-model:env="env" />
 
         <QuotaPanel
             :apiBaseUrl="apiBaseUrl"
