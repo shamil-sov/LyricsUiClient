@@ -9,6 +9,7 @@ const props = defineProps({
 });
 
 const inputMode = ref('url'); // 'url' | 'postid'
+const billWithAiTokens = ref(false);
 const trackUrl = ref('');
 const directPostId = ref('');
 const loading = ref(false);
@@ -52,11 +53,15 @@ async function trigger() {
     pollAttempts.value = [];
     phase.value = 'triggering';
 
-    addAttempt('PUT', `/synced-lyrics/${postId.value}`, 'Triggering…');
+    const putUrl = billWithAiTokens.value
+        ? `${props.apiBaseUrl}/synced-lyrics/${postId.value}?billWithAiTokens=true`
+        : `${props.apiBaseUrl}/synced-lyrics/${postId.value}`;
+
+    addAttempt('PUT', `/synced-lyrics/${postId.value}${billWithAiTokens.value ? '?billWithAiTokens=true' : ''}`, 'Triggering…');
 
     try {
         const res = await loggedFetch(
-            `${props.apiBaseUrl}/synced-lyrics/${postId.value}`,
+            putUrl,
             { method: 'PUT', headers: props.authHeaders() }
         );
 
@@ -210,6 +215,12 @@ function sleep(ms) {
             <button v-if="result && !loading && !deleting" class="btn-secondary" @click="reset">Clear</button>
         </div>
 
+        <label class="billing-toggle">
+            <input type="checkbox" v-model="billWithAiTokens" />
+            Bill with AI tokens
+            <span class="billing-hint">(sends <code>?billWithAiTokens=true</code>)</span>
+        </label>
+
         <div v-if="postId && !result" class="post-id-hint">
             Post ID: <code>{{ postId }}</code>
         </div>
@@ -324,6 +335,31 @@ function sleep(ms) {
 
 .btn-delete:hover:not(:disabled) {
     background: #7d3535;
+}
+
+.billing-toggle {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 0.82rem;
+    color: #ccc;
+    cursor: pointer;
+    margin-bottom: 10px;
+    width: auto;
+}
+
+.billing-toggle input[type="checkbox"] {
+    width: auto;
+    accent-color: #5b8def;
+}
+
+.billing-hint {
+    font-size: 0.72rem;
+    color: #666;
+}
+
+.billing-hint code {
+    color: #5b8def;
 }
 
 .post-id-hint {

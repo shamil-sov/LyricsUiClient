@@ -1,31 +1,62 @@
 <script setup>
-import { ref, inject, onMounted } from 'vue';
+import { ref, inject, computed } from 'vue';
 
 const loggedFetch = inject('loggedFetch');
 
 const props = defineProps({
     apiBaseUrl: String,
     authHeaders: Function,
+    bearerToken: String,
 });
 
 const quota = ref(null);
+const aiBalance = ref(null);
+const aiPrice = ref(null);
 const loading = ref(false);
 const error = ref('');
 
-async function fetchQuota() {
+const userId = computed(() => {
+    if (!props.bearerToken) return null;
+    try {
+        const payload = JSON.parse(atob(props.bearerToken.split('.')[1]));
+        return payload.sub || null;
+    } catch {
+        return null;
+    }
+});
+
+async function fetchAll() {
     if (!props.apiBaseUrl) return;
     loading.value = true;
     error.value = '';
     try {
-        const res = await loggedFetch(
-            `${props.apiBaseUrl}/synced-lyrics/quota`,
-            { headers: props.authHeaders() }
-        );
-        if (!res.ok) {
-            const text = await res.text();
-            throw new Error(`${res.status}: ${text}`);
+        const requests = [
+            loggedFetch(`${props.apiBaseUrl}/synced-lyrics/quota`, { headers: props.authHeaders() }),
+            loggedFetch(`${props.apiBaseUrl}/synced-lyrics/ai-tokens/price`, { headers: props.authHeaders() }),
+        ];
+        if (userId.value) {
+            requests.push(
+                loggedFetch(`${props.apiBaseUrl}/wallet/users/${userId.value}/balances/ai-tokens`, { headers: props.authHeaders() })
+            );
         }
-        quota.value = await res.json();
+        const results = await Promise.allSettled(requests);
+
+        const quotaRes = results[0];
+        if (quotaRes.status === 'fulfilled' && quotaRes.value.ok) {
+            quota.value = await quotaRes.value.json();
+        }
+
+        const priceRes = results[1];
+        if (priceRes.status === 'fulfilled' && priceRes.value.ok) {
+            aiPrice.value = await priceRes.value.json();
+        }
+
+        if (results[2]) {
+            const balRes = results[2];
+            if (balRes.status === 'fulfilled' && balRes.value.ok) {
+                aiBalance.value = await balRes.value.json();
+            }
+        }
     } catch (e) {
         error.value = e.message;
     } finally {
@@ -33,39 +64,59 @@ async function fetchQuota() {
     }
 }
 
-defineExpose({ refresh: fetchQuota });
+defineExpose({ refresh: fetchAll });
 </script>
 
 <template>
     <div class="card quota-card">
         <div class="quota-header">
-            <h2>📊 Quota</h2>
-            <button class="btn-secondary btn-sm" @click="fetchQuota" :disabled="loading">
+            <h2>📊 Quota &amp; AI Tokens</h2>
+            <button class="btn-secondary btn-sm" @click="fetchAll" :disabled="loading">
                 {{ loading ? '…' : '↻ Refresh' }}
             </button>
         </div>
 
-        <div v-if="quota" class="quota-info">
-            <div class="quota-stat">
-                <span class="quota-label">Remaining</span>
-                <span class="quota-value" :class="{ 'quota-zero': quota.remaining === 0 }">
-                    {{ quota.remaining }}
-                </span>
+        <div class="quota-sections">
+            <!-- Legacy quota -->
+            <div class="quota-section">
+                <div class="section-title">Legacy Quota</div>
+                <div v-if="quota" class="quota-info">
+                    <div class="quota-stat">
+                        <span class="quota-label">Remaining</span>
+                        <span class="quota-value" :class="{ 'quota-zero': quota.remaining === 0 }">{{ quota.remaining }}</span>
+                    </div>
+                    <div class="quota-divider" />
+                    <div class="quota-stat">
+                        <span class="quota-label">Limit</span>
+                        <span class="quota-value">{{ quota.limit }}</span>
+                    </div>
+                    <div class="quota-divider" />
+                    <div class="quota-stat">
+                        <span class="quota-label">Used</span>
+                        <span class="quota-value">{{ quota.limit - quota.remaining }}</span>
+                    </div>
+                </div>
+                <div v-else-if="!loading" class="quota-empty">Click refresh to load</div>
             </div>
-            <div class="quota-divider" />
-            <div class="quota-stat">
-                <span class="quota-label">Limit</span>
-                <span class="quota-value">{{ quota.limit }}</span>
-            </div>
-            <div class="quota-divider" />
-            <div class="quota-stat">
-                <span class="quota-label">Used</span>
-                <span class="quota-value">{{ quota.limit - quota.remaining }}</span>
-            </div>
-        </div>
 
-        <div v-else-if="!loading && !error" class="quota-empty">
-            Click refresh to load quota
+            <!-- AI tokens -->
+            <div class="quota-section">
+                <div class="section-title">AI Tokens</div>
+                <div class="quota-info">
+                    <div class="quota-stat">
+                        <span class="quota-label">Balance</span>
+                        <span class="quota-value ai-value">
+                            {{ aiBalance !== null ? aiBalance.balance ?? aiBalance.amount ?? aiBalance : '—' }}
+                        </span>
+                    </div>
+                    <div class="quota-divider" />
+                    <div class="quota-stat">
+                        <span class="quota-label">Price / transcription</span>
+                        <span class="quota-value ai-value">{{ aiPrice !== null ? aiPrice.amount : '—' }}</span>
+                    </div>
+                </div>
+                <div v-if="!userId" class="quota-empty">Paste token to load balance</div>
+            </div>
         </div>
 
         <div v-if="error" class="error-text">{{ error }}</div>
@@ -133,5 +184,28 @@ defineExpose({ refresh: fetchQuota });
 .quota-empty {
     font-size: 0.85rem;
     color: #555;
+}
+
+.quota-sections {
+    display: flex;
+    gap: 24px;
+    flex-wrap: wrap;
+}
+
+.quota-section {
+    flex: 1;
+    min-width: 200px;
+}
+
+.section-title {
+    font-size: 0.72rem;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: #666;
+    margin-bottom: 10px;
+}
+
+.ai-value {
+    color: #c084fc;
 }
 </style>

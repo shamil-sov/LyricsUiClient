@@ -62,6 +62,7 @@ function authHeaders() {
         <QuotaPanel
             :apiBaseUrl="apiBaseUrl"
             :authHeaders="authHeaders"
+            :bearerToken="bearerToken"
         />
 
         <TriggerPanel
