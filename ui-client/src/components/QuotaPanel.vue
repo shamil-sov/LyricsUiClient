@@ -104,10 +104,18 @@ defineExpose({ refresh: fetchAll });
                 <div class="section-title">AI Tokens</div>
                 <div class="quota-info">
                     <div class="quota-stat">
-                        <span class="quota-label">Balance</span>
-                        <span class="quota-value ai-value">
-                            {{ aiBalance !== null ? aiBalance.balance ?? aiBalance.amount ?? aiBalance : '—' }}
-                        </span>
+                        <span class="quota-label">Available</span>
+                        <span class="quota-value ai-value">{{ aiBalance !== null ? aiBalance.available : '—' }}</span>
+                    </div>
+                    <div class="quota-divider" />
+                    <div class="quota-stat">
+                        <span class="quota-label">Held</span>
+                        <span class="quota-value ai-value">{{ aiBalance !== null ? aiBalance.held : '—' }}</span>
+                    </div>
+                    <div class="quota-divider" />
+                    <div class="quota-stat">
+                        <span class="quota-label">Total</span>
+                        <span class="quota-value ai-value">{{ aiBalance !== null ? aiBalance.total : '—' }}</span>
                     </div>
                     <div class="quota-divider" />
                     <div class="quota-stat">

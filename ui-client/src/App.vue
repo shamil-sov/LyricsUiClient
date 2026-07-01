@@ -3,9 +3,11 @@ import { ref, computed, provide } from 'vue';
 import ConfigPanel from './components/ConfigPanel.vue';
 import QuotaPanel from './components/QuotaPanel.vue';
 import TriggerPanel from './components/TriggerPanel.vue';
+import DiagnosticsPanel from './components/DiagnosticsPanel.vue';
 import LogPanel from './components/LogPanel.vue';
 
 const env = ref('test');
+const activeTab = ref('transcribe');
 const apiBaseUrl = computed(() =>
     env.value === 'prod'
         ? 'https://aws.bandlab.com/api/v1.3'
@@ -65,7 +67,19 @@ function authHeaders() {
             :bearerToken="bearerToken"
         />
 
+        <div class="tabs">
+            <button :class="['tab-btn', { active: activeTab === 'transcribe' }]" @click="activeTab = 'transcribe'">🎵 Transcribe</button>
+            <button :class="['tab-btn', { active: activeTab === 'diagnostics' }]" @click="activeTab = 'diagnostics'">🔬 Diagnostics</button>
+        </div>
+
         <TriggerPanel
+            v-if="activeTab === 'transcribe'"
+            :apiBaseUrl="apiBaseUrl"
+            :authHeaders="authHeaders"
+        />
+
+        <DiagnosticsPanel
+            v-if="activeTab === 'diagnostics'"
             :apiBaseUrl="apiBaseUrl"
             :authHeaders="authHeaders"
         />
@@ -181,4 +195,33 @@ button:disabled {
 .status-failed { background: #3a1a1a; color: #ef5b5b; }
 
 .error-text { color: #ef5b5b; font-size: 0.85rem; margin-top: 8px; }
+
+.tabs {
+    display: flex;
+    gap: 4px;
+    margin-bottom: 0;
+}
+
+.tab-btn {
+    padding: 8px 20px;
+    background: #12141c;
+    color: #888;
+    border: 1px solid #2a2d37;
+    border-bottom: none;
+    border-radius: 6px 6px 0 0;
+    font-size: 0.85rem;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.tab-btn.active {
+    background: #1a1d27;
+    color: #e0e0e0;
+    border-color: #2a2d37;
+}
+
+.tab-btn:hover:not(.active) {
+    color: #ccc;
+    background: #1a1d27;
+}
 </style>
