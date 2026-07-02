@@ -9,7 +9,7 @@ const props = defineProps({
 });
 
 const inputMode = ref('url'); // 'url' | 'postid'
-const billWithAiTokens = ref(false);
+const billWithAiTokens = ref(true);
 const trackUrl = ref('');
 const directPostId = ref('');
 const loading = ref(false);
